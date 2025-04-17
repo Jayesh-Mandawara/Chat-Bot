@@ -147,7 +147,7 @@
 
       .msg {
         display: inline-block;
-        max-width: 80%;
+        max-width: 90%;
         padding: 0.6rem 1rem;
         margin-bottom: 1rem;
         border-radius: 15px;
@@ -160,12 +160,14 @@
         background: #d0e6ff;
         align-self: flex-end;
         border-bottom-right-radius: 0;
+        max-width: 80%;
       }
 
       .msg.bot {
         background: #f6e8ff;
         align-self: flex-start;
         border-bottom-left-radius: 0;
+        max-width: 80%;
       }
 
       #input-area {
@@ -253,6 +255,26 @@
 
       .try {
         margin-left: 40px;
+      }
+      /* Smooth fade-in animation */
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(5px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .message {
+        animation: fadeIn 0.4s ease;
+        padding: 10px;
+        margin: 5px;
+        background: #e0e0e0;
+        border-radius: 8px;
+        max-width: 60%;
       }
     </style>
   </head>
@@ -393,6 +415,13 @@
     <button id="chatbot-icon" onclick="toggleChatbot()">💬</button>
     <div id="chatbot-window">
       <div id="messages"></div>
+      <!-- Add a loading indicator div after the message container -->
+      <div id="loading-indicator" style="display: none">
+        <span class="dot"></span>
+        <span class="dot"></span>
+        <span class="dot"></span>
+      </div>
+
       <div id="input-area">
         <input type="text" id="user-input" placeholder="Ask something..." />
         <button id="btn">Send</button>
@@ -412,17 +441,14 @@
           role: "user",
           parts: [
             {
-              text: `When a user inputs a topic, opinion, or statement (e.g., social issues, current events, personal opinions, or news-like text), analyze it using the following format:
+              text: `When a user inputs a topic, opinion, or statement, analyze it using:
+📊 Sentiment Analysis: Classify the input as Positive, Neutral, or Negative and explain briefly.
+🌐 Global Opinion Context: Add public mood if relevant.
+🔥 Relevance to Trending Topics: If it's trending, mention that.
+💬 Quick Feedback: Provide chatbot-style response.
+🎯 Use Case Insight: Suggest how it helps marketers, researchers, students.
 
-    📊 Sentiment Analysis: Classify the input as Positive, Neutral, or Negative and explain briefly why it fits that category.
-    🌐 Global Opinion Context: Comment on how this topic is viewed globally, referencing trends or public mood if relevant.
-    🔥 Relevance to Trending Topics: Mention if this topic is trending or tied to hot-button issues.
-    💬 Quick Feedback: Give a helpful, chatbot-style summary.
-    🎯 Use Case Insight: Suggest how this data could help marketers, researchers, or students.
-
-However, if the input is a general question (such as 'How do planes fly?' or 'What is the capital of Italy?'), respond with a normal, direct answer **without** using the analytical breakdown above.
-
-Automatically detect the input type and apply the correct response style.
+If it's a general factual question or a general statement, just answer it normally.
 `,
             },
           ],
@@ -467,9 +493,12 @@ Automatically detect the input type and apply the correct response style.
       }
 
       async function sendMessage(text) {
-        addMessage("user", text);
-        input.value = "";
-        history.push({ role: "user", parts: [{ text }] });
+        addMessage("user", text); // Add user message to the chat
+        input.value = ""; // Clear the input field
+        history.push({ role: "user", parts: [{ text }] }); // Push user message to history
+
+        // Show the loading indicator while the API request is being processed
+        document.getElementById("loading-indicator").style.display = "flex";
 
         try {
           const response = await fetch(
@@ -486,11 +515,17 @@ Automatically detect the input type and apply the correct response style.
             data.candidates?.[0]?.content?.parts?.[0]?.text ||
             "No response from Gemini.";
 
-          reply = reply.replace(/\*\*/g, "").replace(/\n/g, "<br>");
+          reply = reply.replace(/\*\*/g, "").replace(/\n/g, "<br>"); // Clean the response
 
+          // Add bot response to the chat with fade-in animation
           addMessage("bot", reply);
+
           history.push({ role: "model", parts: [{ text: reply }] });
 
+          // Hide the loading indicator once the message is received
+          document.getElementById("loading-indicator").style.display = "none";
+
+          // Update sentiment counts
           const sentimentMatch = reply.match(
             /Sentiment(?: Analysis)?[^:]*[:\-]?\s*(Positive|Negative|Neutral)/i
           );
@@ -507,15 +542,24 @@ Automatically detect the input type and apply the correct response style.
             "❌ Error contacting Gemini API. Please try again."
           );
           console.error("Gemini error:", error);
+          // Hide the loading indicator in case of error
+          document.getElementById("loading-indicator").style.display = "none";
         }
       }
 
+      // Function to add message with fade-in effect
       function addMessage(sender, text) {
         const div = document.createElement("div");
-        div.className = "msg " + sender;
+        div.className = "msg " + sender + " message"; // Add 'message' class for fade-in
         div.innerHTML = text; // Using innerHTML to support <br> line breaks
         messagesDiv.appendChild(div);
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      }
+
+      // To show/hide the loading dots during the API request
+      function toggleLoadingIndicator(show) {
+        const loadingIndicator = document.getElementById("loading-indicator");
+        loadingIndicator.style.display = show ? "flex" : "none";
       }
 
       input.addEventListener("keypress", (e) => {
