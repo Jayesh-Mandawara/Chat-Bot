@@ -459,6 +459,7 @@
     <script>
       const API_KEY = "AIzaSyDAWhQuuRiu90gsGg1ZNt8u7cwz4GE70MA";
       const NEWS_API_KEY = "d105800b5df245cda52d424bb250e191"; // Replace with your NewsAPI key
+      const CORS_PROXY = "https://cors-anywhere.herokuapp.com/";
 
       const messagesDiv = document.getElementById("messages");
       const input = document.getElementById("user-input");
@@ -520,13 +521,12 @@
       }
 
       async function fetchNews(userRequest = "10") {
-  const url = `https://newsapi.org/v2/top-headlines?country=us&apiKey=${NEWS_API_KEY}`;
-  
+  const url = `${CORS_PROXY}https://newsapi.org/v2/top-headlines?country=us&apiKey=${NEWS_API_KEY}`;
+
   try {
     const res = await fetch(url);
-    
+
     if (!res.ok) {
-      // If server returns non-2xx response (like 426 or 401)
       throw new Error(`HTTP error! Status: ${res.status}`);
     }
 
@@ -556,7 +556,6 @@
     return `❌ Failed to fetch news: ${err.message}`;
   }
 }
-
       async function sendMessage(text) {
         sentimentCounts.Positive = 0;
         sentimentCounts.Neutral = 0;
