@@ -93,7 +93,7 @@
       }
 
       .footer {
-        background: linear-gradient(90deg, #6a11cb 0%, #2575fc 100%);
+        background: linear-gradient(270deg, #6a11cb 0%, #2575fc 100%);
         color: white;
         text-align: center;
         padding: 1rem;
@@ -104,8 +104,8 @@
 
       #chatbot-icon {
         position: fixed;
-        bottom: 40px;
-        right: 30px;
+        bottom: 2vw;
+        right: 2vw;
         background: linear-gradient(90deg, #6a11cb 0%, #2575fc 100%);
         color: white;
         border: none;
@@ -118,15 +118,18 @@
       }
 
       #chatbot-icon:hover {
-        background: linear-gradient(90deg, #2575fc 0%, #6a11cb 100%);
+        transition: all ease 0.3s;
+        box-shadow: 0 2px 10px rgba(106, 17, 203, 0.5);
+        scale: 1.1;
+        /* background: linear-gradient(90deg, #2575fc 0%, #6a11cb 100%); */
       }
 
       #chatbot-window {
         position: fixed;
-        bottom: 120px;
-        right: 35px;
-        width: 500px;
-        height: 700px;
+        bottom: 110px;
+        right: 45px;
+        width: 33vw;
+        height: 45vw;
         background: white;
         box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
         border-radius: 20px;
@@ -148,12 +151,13 @@
       .msg {
         display: inline-block;
         max-width: 90%;
+        font-weight: 600;
         padding: 0.6rem 1rem;
         margin-bottom: 1rem;
         border-radius: 15px;
         background: #f0f0f0;
         word-wrap: break-word;
-        line-height: 1.4;
+        line-height: 1.8;
       }
 
       .msg.user {
@@ -173,7 +177,7 @@
       #input-area {
         display: flex;
         border: none;
-        display: flex;
+        /* display: flex; */
         justify-content: center;
       }
 
@@ -184,6 +188,7 @@
         padding: 15px;
         padding-right: 40px;
         font-size: 14px;
+        font-weight: bold;
         border: none;
         border-radius: 20px;
         background: #f0f2f5;
@@ -210,18 +215,39 @@
         cursor: pointer;
       }
 
+      #btn:hover {
+        transition: all ease 0.3s;
+        box-shadow: 0 2px 10px rgba(106, 17, 203, 0.5);
+      }
+
+      #btn2:hover {
+        transition: all ease 0.3s;
+        box-shadow: 0 2px 10px rgba(106, 17, 203, 0.5);
+      }
+
       .refresh {
         font-size: large;
         margin-bottom: 15px;
         margin-left: 5px;
         margin-right: 5px;
-        background: linear-gradient(90deg, #6a11cb 0%, #2575fc 100%);
+        background: linear-gradient(270deg, #6a11cb 0%, #2575fc 100%);
         color: white;
         border: none;
         border-radius: 50%;
         width: 60px;
         height: 60px;
         cursor: pointer;
+      }
+
+      body::-webkit-scrollbar {
+        display: block;
+        width: 10px;
+        background-color: #938f8f68;
+      }
+
+      body::-webkit-scrollbar-thumb {
+        background: linear-gradient(180deg, #6a11cb 0%, #2575fc 100%);
+        border-radius: 8px;
       }
 
       .parent0 {
@@ -432,6 +458,8 @@
     </div>
     <script>
       const API_KEY = "AIzaSyDAWhQuuRiu90gsGg1ZNt8u7cwz4GE70MA";
+      const NEWS_API_KEY = "d105800b5df245cda52d424bb250e191"; // Replace with your NewsAPI key
+
       const messagesDiv = document.getElementById("messages");
       const input = document.getElementById("user-input");
       const sendBtn = document.getElementById("btn");
@@ -442,14 +470,13 @@
           parts: [
             {
               text: `When a user inputs a topic, opinion, or statement, analyze it using:
-📊 Sentiment Analysis: Classify the input as Positive, Neutral, or Negative and explain briefly.
-🌐 Global Opinion Context: Add public mood if relevant.
-🔥 Relevance to Trending Topics: If it's trending, mention that.
-💬 Quick Feedback: Provide chatbot-style response.
-🎯 Use Case Insight: Suggest how it helps marketers, researchers, students.
-
-If it's a general factual question or a general statement, just answer it normally.
-`,
+        📊 Sentiment Analysis: Classify the input as Positive, Neutral, or Negative and explain briefly.
+        🌐 Global Opinion Context: Add public mood if relevant.
+        🔥 Relevance to Trending Topics: If it's trending, mention that.
+        💬 Quick Feedback: Provide chatbot-style response.
+        🎯 Use Case Insight: Suggest how it helps marketers, researchers, students.
+        
+        If it's a general factual question or a general statement, just answer it normally.`,
             },
           ],
         },
@@ -492,15 +519,64 @@ If it's a general factual question or a general statement, just answer it normal
         sentimentChart.update();
       }
 
-      async function sendMessage(text) {
-        addMessage("user", text); // Add user message to the chat
-        input.value = ""; // Clear the input field
-        history.push({ role: "user", parts: [{ text }] }); // Push user message to history
+      async function fetchNews(userRequest = "10") {
+        const url = `https://newsapi.org/v2/top-headlines?country=us&apiKey=${NEWS_API_KEY}`;
+        const res = await fetch(url);
+        const data = await res.json();
 
-        // Show the loading indicator while the API request is being processed
+        // Check if the API returned an error
+        if (data.status !== "ok") {
+          return `❌ Error fetching news. Please try again.`;
+        }
+
+        // Parse userRequest to get the number of articles they want (default to 10)
+        let numberOfArticles = parseInt(userRequest, 10);
+        if (isNaN(numberOfArticles) || numberOfArticles <= 0) {
+          numberOfArticles = 10; // default to 10 if invalid number is given
+        }
+
+        // Limit to the available articles (if there are fewer than the requested number)
+        const articlesToDisplay = data.articles.slice(
+          0,
+          Math.min(numberOfArticles, data.articles.length)
+        );
+
+        // Constructing the output for the requested number of articles
+        let newsOutput = `📰 Top ${articlesToDisplay.length} News:\n`;
+        articlesToDisplay.forEach((article, index) => {
+          newsOutput += `${index + 1}. ${article.title} - ${
+            article.source.name
+          }\n`;
+        });
+
+        return newsOutput;
+      }
+
+      async function sendMessage(text) {
+        sentimentCounts.Positive = 0;
+        sentimentCounts.Neutral = 0;
+        sentimentCounts.Negative = 0;
+        updateChart();
+
+        addMessage("user", text);
+        input.value = "";
+        history.push({ role: "user", parts: [{ text }] });
+
         document.getElementById("loading-indicator").style.display = "flex";
 
         try {
+          let news = "";
+
+          const lowerText = text.toLowerCase();
+          if (lowerText.includes("news")) {
+            news = await fetchNews();
+            history.push({
+              role: "user",
+              parts: [{ text: `Give top US headline.` }],
+            });
+            history.push({ role: "model", parts: [{ text: news }] });
+          }
+
           const response = await fetch(
             `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`,
             {
@@ -515,17 +591,14 @@ If it's a general factual question or a general statement, just answer it normal
             data.candidates?.[0]?.content?.parts?.[0]?.text ||
             "No response from Gemini.";
 
-          reply = reply.replace(/\*\*/g, "").replace(/\n/g, "<br>"); // Clean the response
+          reply = `${news ? news + "<br><br>" : ""}${reply}`;
+          reply = reply.replace(/\*\*/g, "").replace(/\n/g, "<br>");
 
-          // Add bot response to the chat with fade-in animation
           addMessage("bot", reply);
-
           history.push({ role: "model", parts: [{ text: reply }] });
 
-          // Hide the loading indicator once the message is received
           document.getElementById("loading-indicator").style.display = "none";
 
-          // Update sentiment counts
           const sentimentMatch = reply.match(
             /Sentiment(?: Analysis)?[^:]*[:\-]?\s*(Positive|Negative|Neutral)/i
           );
@@ -542,24 +615,16 @@ If it's a general factual question or a general statement, just answer it normal
             "❌ Error contacting Gemini API. Please try again."
           );
           console.error("Gemini error:", error);
-          // Hide the loading indicator in case of error
           document.getElementById("loading-indicator").style.display = "none";
         }
       }
 
-      // Function to add message with fade-in effect
       function addMessage(sender, text) {
         const div = document.createElement("div");
-        div.className = "msg " + sender + " message"; // Add 'message' class for fade-in
-        div.innerHTML = text; // Using innerHTML to support <br> line breaks
+        div.className = "msg " + sender + " message";
+        div.innerHTML = text;
         messagesDiv.appendChild(div);
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
-      }
-
-      // To show/hide the loading dots during the API request
-      function toggleLoadingIndicator(show) {
-        const loadingIndicator = document.getElementById("loading-indicator");
-        loadingIndicator.style.display = show ? "flex" : "none";
       }
 
       input.addEventListener("keypress", (e) => {
@@ -582,9 +647,7 @@ If it's a general factual question or a general statement, just answer it normal
 
       document.getElementById("btn2").addEventListener("click", () => {
         messagesDiv.innerHTML = "";
-
         history.length = 1;
-
         sentimentCounts.Positive = 0;
         sentimentCounts.Neutral = 0;
         sentimentCounts.Negative = 0;
