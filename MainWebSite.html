@@ -459,7 +459,6 @@
     <script>
       const API_KEY = "AIzaSyDAWhQuuRiu90gsGg1ZNt8u7cwz4GE70MA";
       const NEWS_API_KEY = "d105800b5df245cda52d424bb250e191"; // Replace with your NewsAPI key
-      const CORS_PROXY = "https://cors-anywhere.herokuapp.com/";
 
       const messagesDiv = document.getElementById("messages");
       const input = document.getElementById("user-input");
@@ -521,41 +520,38 @@
       }
 
       async function fetchNews(userRequest = "10") {
-  const url = `${CORS_PROXY}https://newsapi.org/v2/top-headlines?country=us&apiKey=${NEWS_API_KEY}`;
+        const url = `https://newsapi.org/v2/top-headlines?country=us&apiKey=${NEWS_API_KEY}`;
+        const res = await fetch(url);
+        const data = await res.json();
 
-  try {
-    const res = await fetch(url);
+        // Check if the API returned an error
+        if (data.status !== "ok") {
+          return `❌ Error fetching news. Please try again.`;
+        }
 
-    if (!res.ok) {
-      throw new Error(`HTTP error! Status: ${res.status}`);
-    }
+        // Parse userRequest to get the number of articles they want (default to 10)
+        let numberOfArticles = parseInt(userRequest, 10);
+        if (isNaN(numberOfArticles) || numberOfArticles <= 0) {
+          numberOfArticles = 10; // default to 10 if invalid number is given
+        }
 
-    const data = await res.json();
+        // Limit to the available articles (if there are fewer than the requested number)
+        const articlesToDisplay = data.articles.slice(
+          0,
+          Math.min(numberOfArticles, data.articles.length)
+        );
 
-    if (data.status !== "ok") {
-      return `❌ Error fetching news: ${data.message || "Unknown error."}`;
-    }
+        // Constructing the output for the requested number of articles
+        let newsOutput = `📰 Top ${articlesToDisplay.length} News:\n`;
+        articlesToDisplay.forEach((article, index) => {
+          newsOutput += `${index + 1}. ${article.title} - ${
+            article.source.name
+          }\n`;
+        });
 
-    let numberOfArticles = parseInt(userRequest, 10);
-    if (isNaN(numberOfArticles) || numberOfArticles <= 0) {
-      numberOfArticles = 10;
-    }
+        return newsOutput;
+      }
 
-    const articlesToDisplay = data.articles.slice(
-      0,
-      Math.min(numberOfArticles, data.articles.length)
-    );
-
-    let newsOutput = `📰 Top ${articlesToDisplay.length} News:\n`;
-    articlesToDisplay.forEach((article, index) => {
-      newsOutput += `${index + 1}. ${article.title} - ${article.source.name}\n`;
-    });
-
-    return newsOutput;
-  } catch (err) {
-    return `❌ Failed to fetch news: ${err.message}`;
-  }
-}
       async function sendMessage(text) {
         sentimentCounts.Positive = 0;
         sentimentCounts.Neutral = 0;
